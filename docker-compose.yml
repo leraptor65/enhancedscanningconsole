@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  esc-app:
+    build: .
+    image: enhanced-scanning-console:latest
+    container_name: esc-server
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      # Map the data folder so SQLite history survives restarts
+      - ./data:/app/backend/data
+      # Map devices so evdev can read scanner
+      - "/dev/input:/dev/input"
+    privileged: true
