@@ -1,10 +1,8 @@
-version: '3.8'
-
 services:
-  esc-app:
+  esc-dev:
     build: .
-    image: enhanced-scanning-console:latest
-    container_name: esc-server
+    image: enhancedscanningconsole-dev:latest
+    container_name: enhancedscanningconsole-dev
     restart: unless-stopped
     ports:
       - "8000:8000"

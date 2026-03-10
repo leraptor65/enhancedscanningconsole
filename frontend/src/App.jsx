@@ -9,16 +9,28 @@ function App() {
   const [toastMessage, setToastMessage] = useState('');
   const wsRef = useRef(null);
   const scanInputRef = useRef(null);
-  
+
   // Dynamic Host for Websocket and API based on current URL
   const API_HOST = window.location.hostname;
   // If we are serving via Vite, point to Python's port 8000. 
   // If we are deployed behind an Nginx or single container, point to the same port.
   // We'll default to 8000.
   const API_PORT = process.env.NODE_ENV === 'production' ? window.location.port : 8000;
-  
-  const HTTP_BASE = `http://${API_HOST}:${API_PORT}/api`;
-  const WS_BASE = `ws://${API_HOST}:${API_PORT}/ws`;
+
+  // const HTTP_BASE = `http://${API_HOST}:${API_PORT}/api`;
+  // const WS_BASE = `ws://${API_HOST}:${API_PORT}/ws`;
+  // Use the current protocol (http: or https:)
+  const protocol = window.location.protocol;
+  const wsProtocol = protocol === 'https:' ? 'wss:' : 'ws:';
+
+  // If in production, we don't need the port in the URL 
+  // because NPM handles the standard 80/443 mapping.
+  const hostStr = process.env.NODE_ENV === 'production'
+    ? API_HOST
+    : `${API_HOST}:${API_PORT}`;
+
+  const HTTP_BASE = `${protocol}//${hostStr}/api`;
+  const WS_BASE = `${wsProtocol}//${hostStr}/ws`;
 
   const fetchScans = async () => {
     try {
@@ -37,15 +49,15 @@ function App() {
 
     const connectWs = () => {
       const ws = new WebSocket(WS_BASE);
-      
+
       ws.onopen = () => setIsConnected(true);
-      
+
       ws.onclose = () => {
         setIsConnected(false);
         // Retry connection
         setTimeout(connectWs, 3000);
       };
-      
+
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
@@ -53,20 +65,20 @@ function App() {
             setScans(prev => {
               // Check if we already have this scan ID
               const existingIndex = prev.findIndex(s => s.id === data.scan.id);
-              
+
               let newArr;
               if (existingIndex >= 0) {
                 // Remove the old one, put the updated one at top
                 newArr = prev.filter(s => s.id !== data.scan.id);
-                newArr.unshift({...data.scan, isNew: true});
+                newArr.unshift({ ...data.scan, isNew: true });
               } else {
-                newArr = [{...data.scan, isNew: true}, ...prev];
+                newArr = [{ ...data.scan, isNew: true }, ...prev];
               }
 
               // Remove the isNew flag after animation
               setTimeout(() => {
-                setScans(current => 
-                  current.map(s => s.id === data.scan.id ? {...s, isNew: false} : s)
+                setScans(current =>
+                  current.map(s => s.id === data.scan.id ? { ...s, isNew: false } : s)
                 );
               }, 1000);
               return newArr;
@@ -81,21 +93,21 @@ function App() {
           console.error("WS parse error", e);
         }
       };
-      
+
       wsRef.current = ws;
     };
 
     connectWs();
-    
+
     // Auto-focus the invisible input on click anywhere so we don't lose the scanner
     const handleGlobalClick = () => {
       if (scanInputRef.current) {
         scanInputRef.current.focus();
       }
     };
-    
+
     window.addEventListener('click', handleGlobalClick);
-    
+
     // Initial focus
     setTimeout(() => {
       if (scanInputRef.current) scanInputRef.current.focus();
@@ -169,18 +181,18 @@ function App() {
   return (
     <div className="app-container">
       {/* Invisible input specifically for catching scanner keystrokes */}
-      <input 
-        type="text" 
+      <input
+        type="text"
         ref={scanInputRef}
         onKeyDown={handleScanInput}
         style={{ position: 'absolute', opacity: 0, top: '-1000px' }}
         autoFocus
       />
-      
+
       <header className="header">
         <div>
           <h1>Enhanced Scanning Console</h1>
-          <div className="status-indicator" style={{marginTop: '0.5rem'}}>
+          <div className="status-indicator" style={{ marginTop: '0.5rem' }}>
             <div className={`status-dot ${isConnected ? 'connected' : ''}`}></div>
             {isConnected ? 'Scanner service connected' : 'Connecting to scanner service...'}
           </div>
@@ -206,7 +218,7 @@ function App() {
                   <th>Timestamp</th>
                   <th>Barcode Data</th>
                   <th>Count</th>
-                  <th style={{textAlign: 'right'}}>Actions</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -223,16 +235,16 @@ function App() {
                         {scan.count || 1}
                       </span>
                     </td>
-                    <td style={{textAlign: 'right'}}>
-                      <div className="row-actions" style={{display: 'inline-flex'}}>
-                        <button 
+                    <td style={{ textAlign: 'right' }}>
+                      <div className="row-actions" style={{ display: 'inline-flex' }}>
+                        <button
                           onClick={() => copyToClipboard(scan.barcode_data, scan.id)}
                           className="btn btn-icon-only"
                           title="Copy to clipboard"
                         >
-                          {copiedId === scan.id ? <Check size={18} className="success" style={{color: 'var(--success)'}}/> : <Copy size={18} />}
+                          {copiedId === scan.id ? <Check size={18} className="success" style={{ color: 'var(--success)' }} /> : <Copy size={18} />}
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleDelete(scan.id)}
                           className="btn btn-icon-only btn-icon-danger"
                           title="Delete scan"

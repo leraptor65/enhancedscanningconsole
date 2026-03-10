@@ -1,0 +1,11 @@
+services:
+  esc-app:
+    image: leraptor65/enhancedscanningconsole:latest
+    container_name: enhancedscanningconsole
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/backend/data
+      # The line below is optional if a user maps a physical scanner to the container via evdev
+      # - /dev/input:/dev/input:ro
