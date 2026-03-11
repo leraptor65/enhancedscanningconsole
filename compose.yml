@@ -7,5 +7,7 @@ services:
       - "8000:8000"
     volumes:
       - ./data:/app/backend/data
-      # The line below is optional if a user maps a physical scanner to the container via evdev
-      # - /dev/input:/dev/input:ro
+      # Map /dev/input so the backend evdev script can read the scanner headlessly
+      - /dev/input:/dev/input:ro
+    # privileged mode or device mapping is required for evdev to read input devices
+    privileged: true
